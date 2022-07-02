@@ -12,14 +12,19 @@ MAX_FPS = 15
 """ 
 Load in Images into Dictionary 
 """
+
+
 def getimages():
     pieces = ["wp", "bp", "wR", "bR", "wN", "bN", "wB", "bB", "wQ", "bQ", "wK", "bK"]
     for piece in pieces:
-        IMAGES[piece] = game.transform.scale(game.image.load("Images/" + piece + ".png"), (SQUARE_SIZE,SQUARE_SIZE))
+        IMAGES[piece] = game.transform.scale(game.image.load("Images/" + piece + ".png"), (SQUARE_SIZE, SQUARE_SIZE))
+
 
 """
 Handles User Input and Updating Graphics
 """
+
+
 def rungame():
     getimages()
     game.init()
@@ -34,6 +39,38 @@ def rungame():
                 playing = False
         clock.tick(MAX_FPS)
         game.display.flip()
+
+
+"""
+Handles graphics of given board state
+"""
+
+
+def drawgame(bs, screen):
+    drawboard(screen)
+    drawpieces(screen, bs.board)
+
+
+"""
+Helpers
+"""
+
+
+def drawboard(screen):
+    colors = [game.Color("white"), game.Color("violet")]
+    for r in range(DIMENSION):
+        for f in range(DIMENSION):
+            color = colors[(r + f) % 2]  # Dark squares will have remainder 1
+            game.draw.rect(screen, color, game.Rect(f * SQUARE_SIZE, f * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+
+
+def drawpieces(screen, board):
+    for r in range(DIMENSION):
+        for f in range(DIMENSION):
+            piece = board[r][f]
+            if piece != "..":
+                screen.blit(IMAGES[piece], game.Rect(f * SQUARE_SIZE, f * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+
 
 if __name__ == '__main__':
     rungame()
