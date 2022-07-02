@@ -1,5 +1,5 @@
 """ Handles user input and displaying game state at given time """
-
+import pygame
 import pygame as game
 from Chess import engine
 
@@ -35,10 +35,13 @@ def run_game():
     playing = True
     player_mouse_clicks = []
     selected = ()
+    possible_moves = bs.get_valid_moves()
+    move_made = False
     while playing:
         for event in game.event.get():
             if event.type == game.QUIT:
                 playing = False
+            # handle mouse clicks
             elif event.type == game.MOUSEBUTTONDOWN:
                 square = game.mouse.get_pos()
                 file = square[0]//SQUARE_SIZE
@@ -51,9 +54,19 @@ def run_game():
                     player_mouse_clicks.append(selected)
                 if len(player_mouse_clicks) == 2:
                     move = engine.PieceMove(player_mouse_clicks[0], player_mouse_clicks[1], bs.board)
-                    bs.make_move(move)
+                    if move in possible_moves:
+                        bs.make_move(move)
+                        move_made = True
                     selected = ()
                     player_mouse_clicks = []
+            elif event.type == game.KEYDOWN:
+                if event.key == game.K_u:
+                    bs.undo_move()
+                    move_made = True
+        if move_made:
+            possible_moves = bs.get_valid_moves()
+            move_made = False
+
         draw_game(bs, screen)
         clock.tick(MAX_FPS)
         game.display.flip()
