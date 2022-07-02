@@ -1,2 +1,2 @@
-# projects
-A collection of projects that I have built in a variety of coding languages - Python, Java, C++, C
+# Chess AI
+A playable chess AI in Python
