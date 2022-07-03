@@ -1,5 +1,5 @@
 """ Handles user input and displaying game state at given time """
-import pygame
+
 import pygame as game
 from Chess import engine
 
@@ -57,8 +57,10 @@ def run_game():
                     if move in possible_moves:
                         bs.make_move(move)
                         move_made = True
-                    selected = ()
-                    player_mouse_clicks = []
+                        selected = ()
+                        player_mouse_clicks = []
+                    else:
+                        player_mouse_clicks = [selected]
             elif event.type == game.KEYDOWN:
                 if event.key == game.K_u:
                     bs.undo_move()
