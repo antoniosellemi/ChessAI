@@ -53,9 +53,6 @@ class BoardState:
     def get_valid_moves(self):
         valid_moves = []
         self.in_check, self.pins, self.checks = self.pins_and_checks()
-        print(self.in_check)
-        print(self.pins)
-        print(self.checks)
         if self.white_to_move:
             king_rank, king_file = self.white_king
         else:
@@ -84,6 +81,7 @@ class BoardState:
                     if moves[i].piece_moved[1] != 'K':
                         if not (moves[i].end_rank, moves[i].end_file) in possible_squares:
                             moves.remove(moves[i])
+                valid_moves = moves
             # If multiple checks (double checks) then the king needs to move
             else:
                 self.get_king_moves(king_rank, king_file, valid_moves)
@@ -280,7 +278,7 @@ class BoardState:
             ally_color = 'b'
             start_rank = self.black_king[0]
             start_file = self.black_king[1]
-        directions = ((-1, 0), (0, -1), (1, 0), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1))
+        directions = [(-1, 0), (0, -1), (1, 0), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
         # Check in all directions for pins and checks
         for i, direction in enumerate(directions):
             poss_pins = ()
@@ -290,46 +288,40 @@ class BoardState:
                 end_file = start_file + direction[1] * j
                 if 0 <= end_rank <= 7 and 0 <= end_file <= 7:
                     end_piece = self.board[end_rank][end_file]
-                    print(end_piece)
                     if (end_piece[0] == ally_color) and (end_piece[1] != 'K'):  # King cannot be a pinned piece
                         if poss_pins == ():
                             poss_pins = (end_rank, end_file, direction[0], direction[1])
-                            print(poss_pins)
                         else:  # If there's already a piece pinned in this direction, we don't add it
                             break
                     # Check if piece in specific direction can actually check the king
                     elif end_piece[0] == opponent_color:
                         piece_type = end_piece[1]
-                        print("piece type" + piece_type)
                         if (0 <= i <= 3 and piece_type == 'R') or \
                                 (4 <= i <= 7 and piece_type == 'B') or \
                                 (j == 1 and piece_type == 'p' and ((opponent_color == 'w' and 6 <= i <= 7) or (opponent_color == 'b' and 4 <= i <= 5))) or \
                                 (piece_type == 'Q') or (j == 1 and piece_type == 'K'):
-                            print("kdjfdsakfkd")
                             if poss_pins == ():
                                 in_check = True
                                 checks.append((end_rank, end_file, direction[0], direction[1]))
                                 break
                             else:
                                 pins.append(poss_pins)
-                                print("pins: ", pins)
                                 break
                         else:
-                            print("breaking")
                             break
                 else:
                     break
-            # Check if knight is checking the king
-            knight_moves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1))
-            for move in knight_moves:
-                end_rank = start_rank + move[0]
-                end_file = start_file + move[1]
-                if 0 <= end_rank <= 7 and 0 <= end_file <= 7:
-                    end_piece = self.board[end_rank][end_file]
-                    if end_piece[0] == opponent_color and end_piece[1] == 'N':
-                        in_check = True
-                        checks.append((end_rank, end_file, move[0], move[1]))
-            return in_check, pins, checks
+        # Check if knight is checking the king
+        knight_moves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1))
+        for move in knight_moves:
+            end_rank = start_rank + move[0]
+            end_file = start_file + move[1]
+            if 0 <= end_rank <= 7 and 0 <= end_file <= 7:
+                end_piece = self.board[end_rank][end_file]
+                if end_piece[0] == opponent_color and end_piece[1] == 'N':
+                    in_check = True
+                    checks.append((end_rank, end_file, move[0], move[1]))
+        return in_check, pins, checks
 
 # Class for defining a move
 class PieceMove:
