@@ -23,6 +23,9 @@ class BoardState:
         self.black_king = (0, 4)
         self.pins = []
         self.checks = []
+        self.check_mate = False
+        self.stale_male = False
+        self.en_passant_possible = ()
 
     # Updates board state based on move made
     def make_move(self, piecemove):
@@ -34,6 +37,19 @@ class BoardState:
             self.white_king = (piecemove.end_rank, piecemove.end_file)
         elif piecemove.piece_moved == "bK":
             self.black_king = (piecemove.end_rank, piecemove.end_file)
+
+        # Pawn promotion
+        if piecemove.is_pawn_promotion:
+            self.board[piecemove.end_rank][piecemove.end_file] = piecemove.piece_moved[0] + 'Q'
+
+        # Enpassant
+        if piecemove.is_en_passant:
+            self.board[piecemove.start_rank][piecemove.end_file] = '..'
+
+        if piecemove.piece_moved[1] == 'p' and abs(piecemove.start_rank - piecemove.end_rank) == 2:
+            self.en_passant_possible = ((piecemove.start_rank + piecemove.end_rank)//2, piecemove.start_file)
+        else:
+            self.en_passant_possible = ()
 
     # Undo a move by clicking u on the keyboard
     def undo_move(self):
@@ -48,9 +64,18 @@ class BoardState:
                 self.white_king = (piecemove.start_rank, piecemove.start_file)
             elif piecemove.piece_moved == "bK":
                 self.black_king = (piecemove.start_rank, piecemove.start_file)
+            # Undo enpassant
+            if piecemove.is_en_passant:
+                self.board[piecemove.end_rank][piecemove.end_file] = ".."
+                self.board[piecemove.start_rank][piecemove.end_file] = piecemove.piece_captured
+                self.en_passant_possible = (piecemove.end_rank, piecemove.end_file)
+            # Undo two square advance
+            if piecemove.piece_moved[1] == 'p' and abs(piecemove.end_rank - piecemove.start_rank) == 2:
+                self.en_passant_possible = ()
 
     # Get all the valid moves based on the board state, including checks and pins
     def get_valid_moves(self):
+        temp_enpassant = self.en_passant_possible
         valid_moves = []
         self.in_check, self.pins, self.checks = self.pins_and_checks()
         if self.white_to_move:
@@ -89,6 +114,13 @@ class BoardState:
         else:
             valid_moves = self.get_all_possible_moves()
 
+        if len(valid_moves) == 0:
+            if self.in_check:
+                self.check_mate = True
+            else:
+                self.stale_male = True
+
+        self.en_passant_possible = temp_enpassant
         return valid_moves
 
     # Get all possible moves based on piece
@@ -125,9 +157,13 @@ class BoardState:
                 if self.board[r - 1][f - 1][0] == 'b':
                     if not pinned or pin_direction == (-1, -1):
                         valid_moves.append(PieceMove((r, f), (r - 1, f - 1), self.board))
+                elif (r - 1, f - 1) == self.en_passant_possible:
+                    valid_moves.append(PieceMove((r, f), (r - 1, f - 1), self.board, en_passant_possible=True))
                 if self.board[r - 1][f + 1][0] == 'b':
                     if not pinned or pin_direction == (-1, 1):
                         valid_moves.append(PieceMove((r, f), (r - 1, f + 1), self.board))
+                elif (r - 1, f + 1) == self.en_passant_possible:
+                    valid_moves.append(PieceMove((r, f), (r - 1, f + 1), self.board, en_passant_possible=True))
         # Deal with black pawn movement and captures
         else:
             if self.board[r + 1][f] == "..":
@@ -139,9 +175,13 @@ class BoardState:
                 if self.board[r + 1][f - 1][0] == 'w':
                     if not pinned or pin_direction == (1, -1):
                         valid_moves.append(PieceMove((r, f), (r + 1, f - 1), self.board))
+                elif (r + 1, f - 1) == self.en_passant_possible:
+                    valid_moves.append(PieceMove((r, f), (r + 1, f - 1), self.board, en_passant_possible=True))
                 if self.board[r + 1][f + 1][0] == 'w':
                     if not pinned or pin_direction == (1, 1):
                         valid_moves.append(PieceMove((r, f), (r + 1, f + 1), self.board))
+                elif (r + 1, f + 1) == self.en_passant_possible:
+                    valid_moves.append(PieceMove((r, f), (r + 1, f + 1), self.board, en_passant_possible=True))
         return valid_moves
 
     # Get all rook moves including if pinned
@@ -157,7 +197,7 @@ class BoardState:
                     self.pins.remove(self.pins[i])
                 break
 
-        directions = ((-1, 0), (1, 0), (0, -1), (0, 1)) # Unit vector rook movement
+        directions = ((-1, 0), (1, 0), (0, -1), (0, 1))  # Unit vector rook movement
         opponent_color = 'b' if self.white_to_move else 'w'
         # Deal with rook movement in each direction
         for direction in directions:
@@ -188,7 +228,7 @@ class BoardState:
                 self.pins.remove(self.pins[i])
                 break
 
-        directions = ((-2, -1), (-2, 1), (2, -1), (2, 1), (-1, -2), (1, -2), (-1, 2), (1, 2)) # Vector for knight moves
+        directions = ((-2, -1), (-2, 1), (2, -1), (2, 1), (-1, -2), (1, -2), (-1, 2), (1, 2))  # Vector for knight moves
         ally_color = 'w' if self.white_to_move else 'b'
         # Get all knight moves for each direction
         for direction in directions:
@@ -298,7 +338,8 @@ class BoardState:
                         piece_type = end_piece[1]
                         if (0 <= i <= 3 and piece_type == 'R') or \
                                 (4 <= i <= 7 and piece_type == 'B') or \
-                                (j == 1 and piece_type == 'p' and ((opponent_color == 'w' and 6 <= i <= 7) or (opponent_color == 'b' and 4 <= i <= 5))) or \
+                                (j == 1 and piece_type == 'p' and ((opponent_color == 'w' and 6 <= i <= 7) or (
+                                        opponent_color == 'b' and 4 <= i <= 5))) or \
                                 (piece_type == 'Q') or (j == 1 and piece_type == 'K'):
                             if poss_pins == ():
                                 in_check = True
@@ -323,6 +364,7 @@ class BoardState:
                     checks.append((end_rank, end_file, move[0], move[1]))
         return in_check, pins, checks
 
+
 # Class for defining a move
 class PieceMove:
     ranks_to_rows = {"1": 7, "2": 6, "3": 5, "4": 4, "5": 3, "6": 2, "7": 1, "8": 0}
@@ -330,7 +372,7 @@ class PieceMove:
     files_to_cols = {"h": 7, "g": 6, "f": 5, "e": 4, "d": 3, "c": 2, "b": 1, "a": 0}
     cols_to_files = {v: k for k, v in files_to_cols.items()}
 
-    def __init__(self, start_sq, end_sq, board):
+    def __init__(self, start_sq, end_sq, board, en_passant_possible=False):
         self.start_rank = start_sq[0]
         self.start_file = start_sq[1]
         self.end_rank = end_sq[0]
@@ -339,6 +381,11 @@ class PieceMove:
         self.piece_captured = board[self.end_rank][self.end_file]
         # Sort of like a hash map for pieces
         self.move_id = self.start_rank * 1000 + self.start_file * 100 + self.end_rank * 10 + self.end_file
+        self.is_pawn_promotion = ((self.piece_moved == 'wp' and self.end_rank == 0) or (
+                    self.piece_moved == 'bp' and self.end_rank == 7))
+        self.is_en_passant = en_passant_possible
+        if self.is_en_passant:
+            self.piece_captured = 'wp' if self.piece_moved == 'bp' else 'bp'
 
     def __eq__(self, other):
         if isinstance(other, PieceMove):

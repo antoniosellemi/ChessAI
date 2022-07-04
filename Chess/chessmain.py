@@ -54,12 +54,13 @@ def run_game():
                     player_mouse_clicks.append(selected)
                 if len(player_mouse_clicks) == 2:
                     move = engine.PieceMove(player_mouse_clicks[0], player_mouse_clicks[1], bs.board)
-                    if move in possible_moves:
-                        bs.make_move(move)
-                        move_made = True
-                        selected = ()
-                        player_mouse_clicks = []
-                    else:
+                    for m in possible_moves:
+                        if move == m:
+                            bs.make_move(m)
+                            move_made = True
+                            selected = ()
+                            player_mouse_clicks = []
+                    if not move_made:
                         player_mouse_clicks = [selected]
             elif event.type == game.KEYDOWN:
                 if event.key == game.K_u:
@@ -68,6 +69,9 @@ def run_game():
         if move_made:
             possible_moves = bs.get_valid_moves()
             move_made = False
+        if bs.check_mate:
+            print("Game Over: Checkmate")
+            break
 
         draw_game(bs, screen)
         clock.tick(MAX_FPS)
