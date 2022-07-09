@@ -24,7 +24,7 @@ class BoardState:
         self.pins = []
         self.checks = []
         self.check_mate = False
-        self.stale_male = False
+        self.stale_mate = False
         self.en_passant_possible = ()
         self.current_castling_right = CastleRights(True, True, True, True)
         self.castle_rights_log = [CastleRights(self.current_castling_right.wks, self.current_castling_right.bks,
@@ -100,6 +100,8 @@ class BoardState:
                     self.board[piecemove.end_rank][piecemove.end_file-2] = self.board[piecemove.end_rank][piecemove.end_file+1]
                     self.board[piecemove.end_rank][piecemove.end_file + 1] = ".."
 
+            self.check_mate = False
+            self.stale_mate = False
     # Update castling rights given move
     def update_castle_rights(self, piecemove):
         if piecemove.piece_moved == 'wK':

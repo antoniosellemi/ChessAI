@@ -42,7 +42,11 @@ def run_game():
     animate = False
     game_over = False
     player_one = True
-    player_two = False
+    player_two = True
+    start = True
+    random_ai = False
+    greedy_ai = False
+    best_ai = False
     while playing:
         is_human_turn = (bs.white_to_move and player_one) or (not bs.white_to_move and player_two)
         for event in game.event.get():
@@ -76,6 +80,7 @@ def run_game():
                     bs.undo_move()
                     move_made = True
                     animate = False
+                    game_over = False
                 if event.key == game.K_n:
                     bs = engine.BoardState()
                     possible_moves = bs.get_valid_moves()
@@ -83,12 +88,22 @@ def run_game():
                     player_mouse_clicks = []
                     move_made = False
                     animate = False
-                    bs.white_to_move = True
+                    game_over = False
 
         # AI Move
         if not game_over and not is_human_turn:
-            ai_move = chessAI.find_random_moves(possible_moves)
-            bs.make_move(ai_move)
+            if best_ai:
+                ai_move = chessAI.find_best_move(bs, possible_moves)
+                if ai_move is None:
+                    ai_move = chessAI.find_random_moves(possible_moves)
+                bs.make_move(ai_move)
+            if greedy_ai:
+                ai_move = chessAI.find_greedy_move(bs, possible_moves)
+                bs.make_move(ai_move)
+            if random_ai:
+                ai_move = chessAI.find_random_moves(possible_moves)
+                bs.make_move(ai_move)
+
             move_made = True
             animate = True
 
@@ -100,16 +115,33 @@ def run_game():
             animate = False
 
         draw_game(bs, screen, possible_moves, selected)
+        draw_checkmate_and_stalemate(screen, bs)
+        game_over = draw_checkmate_and_stalemate(screen, bs)
 
-        if bs.check_mate:
-            game_over = True
-            if bs.white_to_move:
-                draw_text(screen, "Black Wins: Checkmate")
-            else:
-                draw_text(screen, "White Wins: Checkmate")
-        elif bs.stale_male:
-            game_over = True
-            draw_text(screen, "Stalemate")
+        # if start:
+        #     while True:
+        #         draw_starting_menu(screen)
+        #         for event in game.event.get():
+        #             if event.type == game.KEYDOWN:
+        #                 if event.key == game.K_1:
+        #                     draw_ai_choice(screen)
+        #                     player_two = False
+        #                     if event.key == game.K_e:
+        #                         random_ai = True
+        #                     elif event.key == game.K_m:
+        #                         greedy_ai = True
+        #                     elif event.key == game.K_h:
+        #                         best_ai = True
+        #                 elif event.key == game.K_2:
+        #                     draw_ai_choice(screen)
+        #                     player_one = False
+        #                     if event.key == game.K_e:
+        #                         random_ai = True
+        #                     elif event.key == game.K_m:
+        #                         greedy_ai = True
+        #                     elif event.key == game.K_h:
+        #                         best_ai = True
+        #             start = False
 
         clock.tick(MAX_FPS)
         game.display.flip()
@@ -130,6 +162,7 @@ def draw_game(bs, screen, valid_moves, selected):
 Helpers
 """
 
+
 def draw_board(screen):
     global colors
     colors = [game.Color("light yellow"), game.Color("light gray")]
@@ -138,6 +171,7 @@ def draw_board(screen):
             color = colors[(r + f) % 2]  # Dark squares will have a remainder 1
             game.draw.rect(screen, color, game.Rect(f * SQUARE_SIZE, r * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
+
 def draw_pieces(screen, board):
     for r in range(DIMENSION):
         for f in range(DIMENSION):
@@ -145,13 +179,62 @@ def draw_pieces(screen, board):
             if piece != "..":
                 screen.blit(IMAGES[piece], game.Rect(f * SQUARE_SIZE, r * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
+
 def draw_text(screen, text):
     font = game.font.SysFont("Times New Roman", 32, True, False)
     text_object = font.render(text, False, game.Color("Gray"))
-    text_location = game.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH/2 - text_object.get_width()/2, HEIGHT/2 - text_object.get_height()/2)
+    text_location = game.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH / 2 - text_object.get_width() / 2,
+                                                        HEIGHT / 2 - text_object.get_height() / 2)
     screen.blit(text_object, text_location)
     text_object = font.render(text, False, game.Color("Black"))
     screen.blit(text_object, text_location.move(2, 2))
+
+
+def draw_checkmate_and_stalemate(screen, bs):
+    if bs.check_mate:
+        if bs.white_to_move:
+            draw_text(screen, "Black Wins: Checkmate")
+        else:
+            draw_text(screen, "White Wins: Checkmate")
+        return True
+    elif bs.stale_mate:
+        draw_text(screen, "Stalemate")
+        return True
+    return False
+
+
+def draw_starting_menu(screen):
+    font = game.font.SysFont("Times New Roman", 40, True, False)
+    text_object1 = font.render("Press 1 For Playing as White", False, game.Color("Black"))
+    text_location1 = game.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH / 2 - text_object1.get_width() / 1.95,
+                                                         text_object1.get_height()*7)
+    screen.blit(text_object1, text_location1)
+    text_object2 = font.render("Press 2 For Playing as Black", False, game.Color("Black"))
+    text_location2 = game.Rect(SQUARE_SIZE, SQUARE_SIZE, WIDTH, HEIGHT).move(WIDTH / 2 - text_object1.get_width()/1.57,
+                                                                             text_object1.get_height()*4)
+    screen.blit(text_object2, text_location2)
+
+    text_object3 = font.render("Press 3 For Two Player Game", False, game.Color("Black"))
+    text_location3 = game.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH / 2 - text_object1.get_width() / 1.9,
+                                                         text_object1.get_height()*4)
+    screen.blit(text_object3, text_location3)
+
+def draw_ai_choice(screen):
+    font = game.font.SysFont("Times New Roman", 40, True, False)
+    text_object1 = font.render("Press E For Easy Difficulty", False, game.Color("Black"))
+    text_location1 = game.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH / 2 - text_object1.get_width() / 1.95,
+                                                         text_object1.get_height() * 7)
+    screen.blit(text_object1, text_location1)
+    text_object2 = font.render("Press M For Medium Difficulty", False, game.Color("Black"))
+    text_location2 = game.Rect(SQUARE_SIZE, SQUARE_SIZE, WIDTH, HEIGHT).move(
+        WIDTH / 2 - text_object1.get_width() / 1.57,
+        text_object1.get_height() * 4)
+    screen.blit(text_object2, text_location2)
+
+    text_object3 = font.render("Press H for Hard Difficulty", False, game.Color("Black"))
+    text_location3 = game.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH / 2 - text_object1.get_width() / 1.9,
+                                                         text_object1.get_height() * 4)
+    screen.blit(text_object3, text_location3)
 
 """
 Highlights Squares
@@ -189,13 +272,16 @@ def animate_moves(piecemove, screen, board, clock):
         draw_board(screen)
         draw_pieces(screen, board)
         color = colors[(piecemove.end_rank + piecemove.end_file) % 2]
-        end_square = game.Rect(piecemove.end_file*SQUARE_SIZE, piecemove.end_rank*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)
+        end_square = game.Rect(piecemove.end_file * SQUARE_SIZE, piecemove.end_rank * SQUARE_SIZE, SQUARE_SIZE,
+                               SQUARE_SIZE)
         game.draw.rect(screen, color, end_square)
         if piecemove.piece_captured != "..":
             screen.blit(IMAGES[piecemove.piece_captured], end_square)
-        screen.blit(IMAGES[piecemove.piece_moved], game.Rect(f*SQUARE_SIZE, r*SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+        screen.blit(IMAGES[piecemove.piece_moved],
+                    game.Rect(f * SQUARE_SIZE, r * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
         game.display.flip()
         clock.tick(60)
+
 
 # Run Game
 run_game()
