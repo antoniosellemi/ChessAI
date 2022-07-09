@@ -1,7 +1,7 @@
 """ Handles user input and displaying game state at given time """
 
 import pygame as game
-import pygame.font
+import chessAI
 
 from Chess import engine
 
@@ -41,13 +41,16 @@ def run_game():
     move_made = False
     animate = False
     game_over = False
+    player_one = True
+    player_two = False
     while playing:
+        is_human_turn = (bs.white_to_move and player_one) or (not bs.white_to_move and player_two)
         for event in game.event.get():
             if event.type == game.QUIT:
                 playing = False
             # handle mouse clicks
             elif event.type == game.MOUSEBUTTONDOWN:
-                if not game_over:
+                if not game_over and is_human_turn:
                     square = game.mouse.get_pos()
                     file = square[0] // SQUARE_SIZE
                     rank = square[1] // SQUARE_SIZE
@@ -81,6 +84,13 @@ def run_game():
                     move_made = False
                     animate = False
                     bs.white_to_move = True
+
+        # AI Move
+        if not game_over and not is_human_turn:
+            ai_move = chessAI.find_random_moves(possible_moves)
+            bs.make_move(ai_move)
+            move_made = True
+            animate = True
 
         if move_made:
             if animate:
@@ -120,7 +130,6 @@ def draw_game(bs, screen, valid_moves, selected):
 Helpers
 """
 
-
 def draw_board(screen):
     global colors
     colors = [game.Color("light yellow"), game.Color("light gray")]
@@ -128,7 +137,6 @@ def draw_board(screen):
         for f in range(DIMENSION):
             color = colors[(r + f) % 2]  # Dark squares will have a remainder 1
             game.draw.rect(screen, color, game.Rect(f * SQUARE_SIZE, r * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
-
 
 def draw_pieces(screen, board):
     for r in range(DIMENSION):
@@ -144,6 +152,7 @@ def draw_text(screen, text):
     screen.blit(text_object, text_location)
     text_object = font.render(text, False, game.Color("Black"))
     screen.blit(text_object, text_location.move(2, 2))
+
 """
 Highlights Squares
 """
