@@ -60,11 +60,13 @@ class BoardState:
                                                    self.current_castling_right.wqs, self.current_castling_right.bqs))
 
         if piecemove.is_castle_move:
-            if piecemove.end_file - piecemove.start_file == 2: # Kingside castle
-                self.board[piecemove.end_rank][piecemove.end_file-1] = self.board[piecemove.end_rank][piecemove.end_file+1]
+            if piecemove.end_file - piecemove.start_file == 2:  # Kingside castle
+                self.board[piecemove.end_rank][piecemove.end_file - 1] = self.board[piecemove.end_rank][
+                    piecemove.end_file + 1]
                 self.board[piecemove.end_rank][piecemove.end_file + 1] = ".."
             else:
-                self.board[piecemove.end_rank][piecemove.end_file + 1] = self.board[piecemove.end_rank][piecemove.end_file-2]
+                self.board[piecemove.end_rank][piecemove.end_file + 1] = self.board[piecemove.end_rank][
+                    piecemove.end_file - 2]
                 self.board[piecemove.end_rank][piecemove.end_file - 2] = ".."
 
     # Undo a move by clicking u on the keyboard
@@ -94,23 +96,26 @@ class BoardState:
             # Undo castle move
             if piecemove.is_castle_move:
                 if piecemove.end_file - piecemove.start_file == 2:
-                    self.board[piecemove.end_rank][piecemove.end_file + 1] = self.board[piecemove.end_rank][piecemove.end_file-1]
+                    self.board[piecemove.end_rank][piecemove.end_file + 1] = self.board[piecemove.end_rank][
+                        piecemove.end_file - 1]
                     self.board[piecemove.end_rank][piecemove.end_file - 1] = ".."
                 else:
-                    self.board[piecemove.end_rank][piecemove.end_file-2] = self.board[piecemove.end_rank][piecemove.end_file+1]
+                    self.board[piecemove.end_rank][piecemove.end_file - 2] = self.board[piecemove.end_rank][
+                        piecemove.end_file + 1]
                     self.board[piecemove.end_rank][piecemove.end_file + 1] = ".."
 
             self.check_mate = False
             self.stale_mate = False
+
     # Update castling rights given move
     def update_castle_rights(self, piecemove):
-        if piecemove.piece_moved == 'wK':
+        if piecemove.piece_moved == 'wK':  # If white king moved
             self.current_castling_right.wks = False
             self.current_castling_right.wqs = False
         elif piecemove.piece_moved == 'bK':
             self.current_castling_right.bks = False
             self.current_castling_right.bqs = False
-        elif piecemove.piece_moved == 'wR':
+        elif piecemove.piece_moved == 'wR':  # If white rook moved
             if piecemove.start_rank == 7:
                 if piecemove.start_file == 0:
                     self.current_castling_right.wqs = False
@@ -122,12 +127,25 @@ class BoardState:
                     self.current_castling_right.bqs = False
                 elif piecemove.start_file == 7:
                     self.current_castling_right.bks = False
+        # If Rook is captured
+        if piecemove.piece_captured == 'wR':
+            if piecemove.end_rank == 7:
+                if piecemove.end_file == 0:
+                    self.current_castling_right.wqs = False
+                elif piecemove.end_file == 7:
+                    self.current_castling_right.wks = False
+        elif piecemove.piece_captured == 'bR':
+            if piecemove.end_rank == 0:
+                if piecemove.end_file == 0:
+                    self.current_castling_right.bqs = False
+                elif piecemove.end_file == 7:
+                    self.current_castling_right.bks = False
 
     # Get all the valid moves based on the board state, including checks and pins
     def get_valid_moves(self):
-        temp_enpassant = self.en_passant_possible
+        temp_enpassant = self.en_passant_possible  # Storing this because our method might change this, we want to conserve it
         temp_castle_rights = CastleRights(self.current_castling_right.wks, self.current_castling_right.bks,
-                                               self.current_castling_right.wqs, self.current_castling_right.bqs)
+                                          self.current_castling_right.wqs, self.current_castling_right.bqs)
         valid_moves = []
         self.in_check, self.pins, self.checks = self.pins_and_checks()
         if self.white_to_move:
@@ -202,43 +220,38 @@ class BoardState:
                 pin_direction = (self.pins[i][2], self.pins[i][3])
                 self.pins.remove(self.pins[i])  # Remove from total pins the one given by this pawn
                 break
-
-        # Deal with white pawn movement and captures
         if self.white_to_move:
-            if self.board[r - 1][f] == "..":
-                if not pinned or pin_direction == (-1, 0):
-                    valid_moves.append(PieceMove((r, f), (r - 1, f), self.board))
-                    if r == 6 and self.board[r - 2][f] == "..":
-                        valid_moves.append(PieceMove((r, f), (r - 2, f), self.board))
-            if f - 1 >= 0 and f + 1 <= 7:
-                if self.board[r - 1][f - 1][0] == 'b':
-                    if not pinned or pin_direction == (-1, -1):
-                        valid_moves.append(PieceMove((r, f), (r - 1, f - 1), self.board))
-                elif (r - 1, f - 1) == self.en_passant_possible:
-                    valid_moves.append(PieceMove((r, f), (r - 1, f - 1), self.board, en_passant_possible=True))
-                if self.board[r - 1][f + 1][0] == 'b':
-                    if not pinned or pin_direction == (-1, 1):
-                        valid_moves.append(PieceMove((r, f), (r - 1, f + 1), self.board))
-                elif (r - 1, f + 1) == self.en_passant_possible:
-                    valid_moves.append(PieceMove((r, f), (r - 1, f + 1), self.board, en_passant_possible=True))
-        # Deal with black pawn movement and captures
+            move_amount = -1
+            start_row = 6
+            enemy_color = 'b'
         else:
-            if self.board[r + 1][f] == "..":
-                if not pinned or pin_direction == (1, 0):
-                    valid_moves.append(PieceMove((r, f), (r + 1, f), self.board))
-                    if r == 1 and self.board[r + 2][f] == "..":
-                        valid_moves.append(PieceMove((r, f), (r + 2, f), self.board))
-            if f - 1 >= 0 and f + 1 <= 7:
-                if self.board[r + 1][f - 1][0] == 'w':
-                    if not pinned or pin_direction == (1, -1):
-                        valid_moves.append(PieceMove((r, f), (r + 1, f - 1), self.board))
-                elif (r + 1, f - 1) == self.en_passant_possible:
-                    valid_moves.append(PieceMove((r, f), (r + 1, f - 1), self.board, en_passant_possible=True))
-                if self.board[r + 1][f + 1][0] == 'w':
-                    if not pinned or pin_direction == (1, 1):
-                        valid_moves.append(PieceMove((r, f), (r + 1, f + 1), self.board))
-                elif (r + 1, f + 1) == self.en_passant_possible:
-                    valid_moves.append(PieceMove((r, f), (r + 1, f + 1), self.board, en_passant_possible=True))
+            move_amount = 1
+            start_row = 1
+            enemy_color = 'w'
+
+        # One square, two square moves
+        if self.board[r + move_amount][f] == "..":
+            if not pinned or pin_direction == (move_amount, 0):
+                valid_moves.append(PieceMove((r, f), (r + move_amount, f), self.board))
+                if r == start_row and self.board[r + 2 * move_amount][f] == "..":
+                    valid_moves.append(PieceMove((r, f), (r + 2 * move_amount, f), self.board))
+        # Left capture
+        if f - 1 >= 0:
+            if not pinned or pin_direction == (move_amount, -1):
+                if self.board[r + move_amount][f - 1][0] == enemy_color:
+                    valid_moves.append(PieceMove((r, f), (r + move_amount, f - 1), self.board))
+                if (r + move_amount, f - 1) == self.en_passant_possible:
+                    valid_moves.append(
+                        PieceMove((r, f), (r + move_amount, f - 1), self.board, en_passant_possible=True))
+        # Right capture
+        if f + 1 <= 7:
+            if not pinned or pin_direction == (move_amount, 1):
+                if self.board[r + move_amount][f + 1][0] == enemy_color:
+                    valid_moves.append(PieceMove((r, f), (r + move_amount, f + 1), self.board))
+                if (r + move_amount, f + 1) == self.en_passant_possible:
+                    valid_moves.append(
+                        PieceMove((r, f), (r + move_amount, f + 1), self.board, en_passant_possible=True))
+
         return valid_moves
 
     # Get all rook moves including if pinned
@@ -465,6 +478,7 @@ class BoardState:
 
 # Class for defining a move
 class PieceMove:
+    # Dictionaries for translation from computer indices to chess notation and vice versa
     ranks_to_rows = {"1": 7, "2": 6, "3": 5, "4": 4, "5": 3, "6": 2, "7": 1, "8": 0}
     rows_to_ranks = {v: k for k, v in ranks_to_rows.items()}
     files_to_cols = {"h": 7, "g": 6, "f": 5, "e": 4, "d": 3, "c": 2, "b": 1, "a": 0}
@@ -484,6 +498,7 @@ class PieceMove:
         self.is_en_passant = en_passant_possible
         if self.is_en_passant:
             self.piece_captured = 'wp' if self.piece_moved == 'bp' else 'bp'
+        self.is_capture = self.piece_captured != ".."
         self.is_castle_move = is_castle
 
     def __eq__(self, other):
@@ -492,9 +507,22 @@ class PieceMove:
         return False
 
     def __str__(self):
-        print(self.get_chess_notation_square())
+        if self.is_castle_move:
+            return "O-O" if self.end_file == 6 else "O-O-O"
+        end_square = self.get_rank_and_file(self.end_rank, self.end_file)
+        # Dealing with pawn moves and captures
+        if self.piece_moved[1] == 'p':
+            if self.is_capture:
+                return self.cols_to_files[self.start_file] + "x" + end_square
+            else:
+                return end_square
+        # Dealing with all other moves and captures
+        move_string = self.piece_moved[1]
+        if self.is_capture:
+            move_string += 'x'
+        return move_string + end_square
 
-    def get_chess_notation_square(self):
+    def get_chess_notation(self):
         return self.get_rank_and_file(self.start_rank, self.start_file) + self.get_rank_and_file(self.end_file,
                                                                                                  self.end_file)
 
