@@ -48,7 +48,7 @@ def run_game():
     game_over = False
     # Main menu options
     player_one = True
-    player_two = True
+    player_two = False
     start = True
     # AI selection
     random_ai = False

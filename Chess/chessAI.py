@@ -4,7 +4,7 @@ import engine
 CHECKMATE = 999
 STALEMATE = 0
 piece_scores = {'p': 1, 'R': 5, 'N': 3, 'B': 3, 'Q': 9, 'K': 0}
-DEPTH = 3
+DEPTH = 4
 
 # Returns random move
 def find_random_moves(valid_moves):
@@ -47,6 +47,7 @@ def find_greedy_move(bs, valid_moves):
 # Helper for find best move first recursive call
 def find_best_move(bs, valid_moves):
     global next_move
+    random.shuffle(valid_moves)
     next_move = None
     find_move_nega_max_alpha_beta(bs, valid_moves, DEPTH, -CHECKMATE, CHECKMATE, 1 if bs.white_to_move else -1)
     return next_move
@@ -61,7 +62,7 @@ def find_best_move_min_max(bs, valid_moves, depth, white_to_move):
         for move in valid_moves:
             bs.make_move(move)
             next_moves = bs.get_valid_moves()
-            score = find_best_move(bs, next_moves, depth - 1, False)
+            score = find_move_nega_max(bs, next_moves, depth - 1, False)
             if score > max_score:
                 max_score = score
                 if depth == DEPTH:
@@ -73,9 +74,9 @@ def find_best_move_min_max(bs, valid_moves, depth, white_to_move):
         for move in valid_moves:
             bs.make_move(move)
             next_moves = bs.get_valid_moves()
-            score = find_best_move(bs, next_moves, depth - 1, True)
+            score = find_move_nega_max(bs, next_moves, depth - 1, True)
             if score < min_score:
-                max_score = score
+                min_score = score
                 if depth == DEPTH:
                     next_move = move
             bs.undo_move()
