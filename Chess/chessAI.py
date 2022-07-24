@@ -4,11 +4,73 @@ import engine
 CHECKMATE = 999
 STALEMATE = 0
 piece_scores = {'p': 1, 'R': 5, 'N': 3, 'B': 3, 'Q': 9, 'K': 0}
+knight_scores = [[1, 1, 1, 1, 1, 1, 1, 1],
+                 [1, 2, 2, 2, 2, 2, 2, 1],
+                 [1, 2, 3, 3, 3, 3, 2, 1],
+                 [1, 2, 3, 4, 4, 3, 2, 1],
+                 [1, 2, 3, 4, 4, 3, 2, 1],
+                 [1, 2, 3, 3, 3, 3, 2, 1],
+                 [1, 2, 2, 2, 2, 2, 2, 1],
+                 [1, 1, 1, 1, 1, 1, 1, 1]]
+bishop_scores = [[4, 3, 2, 1, 1, 2, 3, 4],
+                 [3, 4, 3, 2, 2, 3, 4, 3],
+                 [2, 3, 4, 3, 3, 4, 3, 2],
+                 [1, 2, 3, 4, 4, 3, 2, 1],
+                 [1, 2, 4, 4, 4, 3, 2, 1],
+                 [2, 3, 4, 3, 3, 4, 3, 2],
+                 [3, 4, 3, 2, 2, 3, 4, 3],
+                 [4, 3, 2, 1, 1, 2, 3, 4]]
+queen_scores = [[1, 1, 1, 3, 1, 1, 1, 1],
+                [1, 2, 3, 3, 3, 1, 1, 1],
+                [1, 4, 3, 3, 3, 4, 2, 1],
+                [1, 2, 3, 3, 3, 2, 2, 1],
+                [1, 2, 3, 3, 3, 2, 2, 1],
+                [1, 4, 3, 3, 3, 4, 2, 1],
+                [1, 1, 2, 3, 3, 1, 1, 1],
+                [1, 1, 1, 3, 1, 1, 1, 1]]
+rook_scores = [[4, 3, 4, 4, 4, 4, 3, 4],
+               [4, 4, 4, 4, 4, 4, 4, 4],
+               [1, 1, 2, 3, 3, 2, 1, 1],
+               [1, 2, 3, 4, 4, 3, 2, 1],
+               [1, 2, 3, 4, 4, 3, 2, 1],
+               [1, 1, 2, 2, 2, 2, 1, 1],
+               [4, 4, 4, 4, 4, 4, 4, 4],
+               [4, 3, 4, 4, 4, 4, 3, 4]]
+white_pawn_scores = [[9, 9, 9, 9, 9, 9, 9, 9],
+                     [8, 8, 8, 8, 8, 8, 8, 8],
+                     [5, 6, 6, 7, 7, 6, 6, 5],
+                     [2, 3, 3, 5, 5, 3, 3, 2],
+                     [1, 2, 3, 4, 4, 3, 2, 1],
+                     [1, 1, 2, 3, 3, 2, 1, 1],
+                     [1, 1, 1, 0, 0, 1, 1, 1],
+                     [0, 0, 0, 0, 0, 0, 0, 0]]
+
+black_pawn_scores = [[0, 0, 0, 0, 0, 0, 0, 0],
+                     [1, 1, 1, 0, 0, 1, 1, 1],
+                     [1, 1, 2, 3, 3, 2, 1, 1],
+                     [1, 2, 3, 4, 4, 3, 2, 1],
+                     [2, 3, 3, 5, 5, 3, 3, 2],
+                     [5, 6, 6, 7, 7, 6, 6, 5],
+                     [8, 8, 8, 8, 8, 8, 8, 8],
+                     [9, 9, 9, 9, 9, 9, 9, 9]]
+king_scores = [[1, 5, 2, 0, 5, 0, 7, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [1, 5, 2, 0, 5, 0, 7, 0]]
+
+piece_position_scores = {"wp": white_pawn_scores, "bp": black_pawn_scores, "R": rook_scores, "N": knight_scores,
+                         "B": bishop_scores, "Q": queen_scores, "K": king_scores}
 DEPTH = 4
+
 
 # Returns random move
 def find_random_moves(valid_moves):
-    return valid_moves[random.randint(0, len(valid_moves)-1)]
+    return valid_moves[random.randint(0, len(valid_moves) - 1)]
+
 
 # Find best move based on material alone, greedy algorithm
 def find_greedy_move(bs, valid_moves):
@@ -44,6 +106,7 @@ def find_greedy_move(bs, valid_moves):
 
     return best_player_move
 
+
 # Helper for find best move first recursive call
 def find_best_move(bs, valid_moves):
     global next_move
@@ -51,6 +114,7 @@ def find_best_move(bs, valid_moves):
     next_move = None
     find_move_nega_max_alpha_beta(bs, valid_moves, DEPTH, -CHECKMATE, CHECKMATE, 1 if bs.white_to_move else -1)
     return next_move
+
 
 # Implements min max algorithm
 def find_best_move_min_max(bs, valid_moves, depth, white_to_move):
@@ -82,6 +146,7 @@ def find_best_move_min_max(bs, valid_moves, depth, white_to_move):
             bs.undo_move()
         return min_score
 
+
 def find_move_nega_max(bs, valid_moves, depth, turn):
     global next_move
     if depth == 0:
@@ -97,6 +162,7 @@ def find_move_nega_max(bs, valid_moves, depth, turn):
                 next_move = move
         bs.undo_move()
     return max_score
+
 
 def find_move_nega_max_alpha_beta(bs, valid_moves, depth, alpha, beta, turn):
     global next_move
@@ -119,10 +185,12 @@ def find_move_nega_max_alpha_beta(bs, valid_moves, depth, alpha, beta, turn):
             break
     return max_score
 
+
 # Helpers
 
 # More intuitive scoring method, positive is good for white
 def score_board(bs):
+    global piece_position_score
     if bs.check_mate:
         if bs.white_to_move:
             return -CHECKMATE
@@ -132,14 +200,22 @@ def score_board(bs):
         return STALEMATE
 
     score = 0
-    for rank in bs.board:
-        for square in rank:
+    for rank in range(len(bs.board)):
+        for file in range(len(bs.board[rank])):
+            square = bs.board[rank][file]
+            if square != "..":
+                if square[1] == "p":
+                    piece_position_score = piece_position_scores[square][rank][file]
+                else:
+                    piece_position_score = piece_position_scores[square[1]][rank][file]
             if square[0] == 'w':
-                score += piece_scores[square[1]]
+                score += piece_scores[square[1]] + piece_position_score * .1
             elif square[0] == 'b':
-                score -= piece_scores[square[1]]
+                score -= piece_scores[square[1]] + piece_position_score * .1
 
     return score
+
+
 # Score board based on material on board
 def material_score(board):
     score = 0

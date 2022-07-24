@@ -25,7 +25,7 @@ class BoardState:
         self.checks = []
         self.check_mate = False
         self.stale_mate = False
-        self.en_passant_possible = ()
+        self.enpassant_move = ()
         self.current_castling_right = CastleRights(True, True, True, True)
         self.castle_rights_log = [CastleRights(self.current_castling_right.wks, self.current_castling_right.bks,
                                                self.current_castling_right.wqs, self.current_castling_right.bqs)]
@@ -50,9 +50,9 @@ class BoardState:
             self.board[piecemove.start_rank][piecemove.end_file] = '..'
 
         if piecemove.piece_moved[1] == 'p' and abs(piecemove.start_rank - piecemove.end_rank) == 2:
-            self.en_passant_possible = ((piecemove.start_rank + piecemove.end_rank) // 2, piecemove.start_file)
+            self.enpassant_move = ((piecemove.start_rank + piecemove.end_rank) // 2, piecemove.start_file)
         else:
-            self.en_passant_possible = ()
+            self.enpassant_move = ()
 
         # Castling Rights
         self.update_castle_rights(piecemove)
@@ -143,7 +143,7 @@ class BoardState:
 
     # Get all the valid moves based on the board state, including checks and pins
     def get_valid_moves(self):
-        temp_enpassant = self.en_passant_possible  # Storing this because our method might change this, we want to conserve it
+        temp_enpassant = self.enpassant_move  # Storing this because our method might change this, we want to conserve it
         temp_castle_rights = CastleRights(self.current_castling_right.wks, self.current_castling_right.bks,
                                           self.current_castling_right.wqs, self.current_castling_right.bqs)
         valid_moves = []
@@ -192,9 +192,9 @@ class BoardState:
             if self.in_check:
                 self.check_mate = True
             else:
-                self.stale_male = True
+                self.stale_mate = True
 
-        self.en_passant_possible = temp_enpassant
+        self.enpassant_move = temp_enpassant
         self.current_castling_right = temp_castle_rights
         return valid_moves
 
@@ -224,10 +224,12 @@ class BoardState:
             move_amount = -1
             start_row = 6
             enemy_color = 'b'
+            king_rank, king_file = self.white_king
         else:
             move_amount = 1
             start_row = 1
             enemy_color = 'w'
+            king_rank, king_file = self.black_king
 
         # One square, two square moves
         if self.board[r + move_amount][f] == "..":
@@ -240,17 +242,51 @@ class BoardState:
             if not pinned or pin_direction == (move_amount, -1):
                 if self.board[r + move_amount][f - 1][0] == enemy_color:
                     valid_moves.append(PieceMove((r, f), (r + move_amount, f - 1), self.board))
-                if (r + move_amount, f - 1) == self.en_passant_possible:
-                    valid_moves.append(
-                        PieceMove((r, f), (r + move_amount, f - 1), self.board, en_passant_possible=True))
+                if (r + move_amount, f - 1) == self.enpassant_move:
+                    attacking_piece = blocking_piece = False
+                    if king_rank == r:
+                        if king_file < f:  # King is left of pawn
+                            inside = range(king_file + 1, f - 1)
+                            outside = range(f + 1, 8)
+                        else:
+                            inside = range(king_file - 1, f, -1)
+                            outside = range(f - 2, -1, -1)
+                        for i in inside:
+                            if self.board[r][i] != "..":  # Some piece is blocking
+                                blocking_piece = True
+                        for i in outside:
+                            square = self.board[r][i]
+                            if square[0] == enemy_color and (square[1] == 'R' or square[1] == 'Q'):
+                                attacking_piece = True
+                            elif square != "..":
+                                blocking_piece = True
+                    if not attacking_piece or blocking_piece:
+                        valid_moves.append(PieceMove((r, f), (r + move_amount, f - 1), self.board, en_passant_possible=True))
         # Right capture
         if f + 1 <= 7:
             if not pinned or pin_direction == (move_amount, 1):
                 if self.board[r + move_amount][f + 1][0] == enemy_color:
                     valid_moves.append(PieceMove((r, f), (r + move_amount, f + 1), self.board))
-                if (r + move_amount, f + 1) == self.en_passant_possible:
-                    valid_moves.append(
-                        PieceMove((r, f), (r + move_amount, f + 1), self.board, en_passant_possible=True))
+                if (r + move_amount, f + 1) == self.enpassant_move:
+                    attacking_piece = blocking_piece = False
+                    if king_rank == r:
+                        if king_file > f:  # King is left of pawn
+                            inside = range(king_file + 1, f)
+                            outside = range(f + 2, 8)
+                        else:
+                            inside = range(king_file - 1, f + 1, -1)
+                            outside = range(f - 1, -1, -1)
+                        for i in inside:
+                            if self.board[r][i] != "..":  # Some piece is blocking
+                                blocking_piece = True
+                        for i in outside:
+                            square = self.board[r][i]
+                            if square[0] == enemy_color and (square[1] == 'R' or square[1] == 'Q'):
+                                attacking_piece = True
+                            elif square != "..":
+                                blocking_piece = True
+                    if not attacking_piece or blocking_piece:
+                        valid_moves.append(PieceMove((r, f), (r + move_amount, f - 1), self.board, en_passant_possible=True))
 
         return valid_moves
 

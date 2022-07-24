@@ -30,6 +30,15 @@ Handles User Input and Updating Graphics
 
 
 def run_game():
+    # Main menu options
+    player_one = True
+    player_two = False
+
+    # AI selection
+    random_ai = False
+    greedy_ai = False
+    best_ai = True
+
     # Board graphics setup
     get_images()
     game.init()
@@ -46,14 +55,6 @@ def run_game():
     move_made = False
     animate = False
     game_over = False
-    # Main menu options
-    player_one = True
-    player_two = False
-    start = True
-    # AI selection
-    random_ai = False
-    greedy_ai = False
-    best_ai = True
     while playing:
         is_human_turn = (bs.white_to_move and player_one) or (not bs.white_to_move and player_two)
         for event in game.event.get():
@@ -107,11 +108,12 @@ def run_game():
                 ai_move = chessAI.find_best_move(bs, possible_moves)
                 if ai_move is None:
                     ai_move = chessAI.find_random_moves(possible_moves)
+                print(ai_move)
                 bs.make_move(ai_move)
-            if greedy_ai:
+            elif greedy_ai:
                 ai_move = chessAI.find_greedy_move(bs, possible_moves)
                 bs.make_move(ai_move)
-            if random_ai:
+            elif random_ai:
                 ai_move = chessAI.find_random_moves(possible_moves)
                 bs.make_move(ai_move)
 
@@ -130,31 +132,6 @@ def run_game():
         draw_game(bs, screen, possible_moves, selected, move_log_font)
         draw_checkmate_and_stalemate(screen, bs)
         game_over = draw_checkmate_and_stalemate(screen, bs)
-
-        # if start:
-        #     while True:
-        #         draw_starting_menu(screen)
-        #         for event in game.event.get():
-        #             if event.type == game.KEYDOWN:
-        #                 if event.key == game.K_1:
-        #                     draw_ai_choice(screen)
-        #                     player_two = False
-        #                     if event.key == game.K_e:
-        #                         random_ai = True
-        #                     elif event.key == game.K_m:
-        #                         greedy_ai = True
-        #                     elif event.key == game.K_h:
-        #                         best_ai = True
-        #                 elif event.key == game.K_2:
-        #                     draw_ai_choice(screen)
-        #                     player_one = False
-        #                     if event.key == game.K_e:
-        #                         random_ai = True
-        #                     elif event.key == game.K_m:
-        #                         greedy_ai = True
-        #                     elif event.key == game.K_h:
-        #                         best_ai = True
-        #             start = False
 
         clock.tick(MAX_FPS)
         game.display.flip()
