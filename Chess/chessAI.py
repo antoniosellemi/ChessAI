@@ -12,6 +12,58 @@ knight_scores = [[1, 1, 1, 1, 1, 1, 1, 1],
                  [1, 2, 3, 3, 3, 3, 2, 1],
                  [1, 2, 2, 2, 2, 2, 2, 1],
                  [1, 1, 1, 1, 1, 1, 1, 1]]
+bishop_scores = [[4, 3, 2, 1, 1, 2, 3, 4],
+                 [3, 4, 3, 2, 2, 3, 4, 3],
+                 [2, 3, 4, 3, 3, 4, 3, 2],
+                 [1, 2, 3, 4, 4, 3, 2, 1],
+                 [1, 2, 4, 4, 4, 3, 2, 1],
+                 [2, 3, 4, 3, 3, 4, 3, 2],
+                 [3, 4, 3, 2, 2, 3, 4, 3],
+                 [4, 3, 2, 1, 1, 2, 3, 4]]
+queen_scores = [[1, 1, 1, 3, 1, 1, 1, 1],
+                [1, 2, 3, 3, 3, 1, 1, 1],
+                [1, 4, 3, 3, 3, 4, 2, 1],
+                [1, 2, 3, 3, 3, 2, 2, 1],
+                [1, 2, 3, 3, 3, 2, 2, 1],
+                [1, 4, 3, 3, 3, 4, 2, 1],
+                [1, 1, 2, 3, 3, 1, 1, 1],
+                [1, 1, 1, 3, 1, 1, 1, 1]]
+rook_scores = [[4, 3, 4, 4, 4, 4, 3, 4],
+               [4, 4, 4, 4, 4, 4, 4, 4],
+               [1, 1, 2, 3, 3, 2, 1, 1],
+               [1, 2, 3, 4, 4, 3, 2, 1],
+               [1, 2, 3, 4, 4, 3, 2, 1],
+               [1, 1, 2, 2, 2, 2, 1, 1],
+               [4, 4, 4, 4, 4, 4, 4, 4],
+               [4, 3, 4, 4, 4, 4, 3, 4]]
+white_pawn_scores = [[9, 9, 9, 9, 9, 9, 9, 9],
+                     [8, 8, 8, 8, 8, 8, 8, 8],
+                     [5, 6, 6, 7, 7, 6, 6, 5],
+                     [2, 3, 3, 5, 5, 3, 3, 2],
+                     [1, 2, 3, 4, 4, 3, 2, 1],
+                     [1, 1, 2, 3, 3, 2, 1, 1],
+                     [1, 1, 1, 0, 0, 1, 1, 1],
+                     [0, 0, 0, 0, 0, 0, 0, 0]]
+
+black_pawn_scores = [[0, 0, 0, 0, 0, 0, 0, 0],
+                     [1, 1, 1, 0, 0, 1, 1, 1],
+                     [1, 1, 2, 3, 3, 2, 1, 1],
+                     [1, 2, 3, 4, 4, 3, 2, 1],
+                     [2, 3, 3, 5, 5, 3, 3, 2],
+                     [5, 6, 6, 7, 7, 6, 6, 5],
+                     [8, 8, 8, 8, 8, 8, 8, 8],
+                     [9, 9, 9, 9, 9, 9, 9, 9]]
+king_scores = [[1, 5, 2, 0, 5, 0, 7, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0],
+               [1, 5, 2, 0, 5, 0, 7, 0]]
+
+piece_position_scores = {"wp": white_pawn_scores, "bp": black_pawn_scores, "R": rook_scores, "N": knight_scores,
+                         "B": bishop_scores, "Q": queen_scores, "K": king_scores}
 DEPTH = 4
 
 
@@ -138,6 +190,7 @@ def find_move_nega_max_alpha_beta(bs, valid_moves, depth, alpha, beta, turn):
 
 # More intuitive scoring method, positive is good for white
 def score_board(bs):
+    global piece_position_score
     if bs.check_mate:
         if bs.white_to_move:
             return -CHECKMATE
@@ -147,12 +200,18 @@ def score_board(bs):
         return STALEMATE
 
     score = 0
-    for rank in bs.board:
-        for square in rank:
+    for rank in range(len(bs.board)):
+        for file in range(len(bs.board[rank])):
+            square = bs.board[rank][file]
+            if square != "..":
+                if square[1] == "p":
+                    piece_position_score = piece_position_scores[square][rank][file]
+                else:
+                    piece_position_score = piece_position_scores[square[1]][rank][file]
             if square[0] == 'w':
-                score += piece_scores[square[1]]
+                score += piece_scores[square[1]] + piece_position_score * .1
             elif square[0] == 'b':
-                score -= piece_scores[square[1]]
+                score -= piece_scores[square[1]] + piece_position_score * .1
 
     return score
 
